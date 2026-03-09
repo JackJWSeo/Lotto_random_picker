@@ -4,7 +4,9 @@ import threading
 import tkinter as tk
 import subprocess
 import sys
+import base64
 import os
+from Lotto_base64 import Lotto_base64
 from tkinter import ttk, messagebox, filedialog
 from ui_heatmap import CombinationHeatmapWindow
 
@@ -20,7 +22,16 @@ from winning_service import import_winning_data_from_text
 from ui_popup import ProgressPopup
 from ui_text_input import WinningTextInputWindow
 from ui_3d_cube import Combination3DCubeWindow
+from hex_spiral_heatmap_window import HexSpiralHeatmapWindow
+from circle_packing_heatmap_window import CircularRingHeatmapWindow
+from sphere_lotto_opengl import LottoSphereOpenGLWindow
 
+# ------------------------------------------------------------
+# 아이콘 로드
+# ------------------------------------------------------------
+def load_embedded_icon():
+    icon_data = base64.b64decode(Lotto_base64)
+    return tk.PhotoImage(data=icon_data)
 
 class LottoApp(tk.Tk):
     def __init__(self):
@@ -28,6 +39,11 @@ class LottoApp(tk.Tk):
         self.title(APP_TITLE)
         self.geometry(APP_GEOMETRY)
         self.resizable(False, False)
+
+        try:
+            self.iconphoto(True, load_embedded_icon())
+        except Exception:
+            pass
 
         self.msg_queue = queue.Queue()
         self.result_vars = []
@@ -55,9 +71,15 @@ class LottoApp(tk.Tk):
         win_menu.add_separator()
         win_menu.add_command(label="조합 인덱스 히트맵 보기", command=self.open_heatmap_window)
         win_menu.add_separator()
-        win_menu.add_command(label="3D 조합 큐브 보기", command=self.open_3d_cube_window)
+        win_menu.add_command(label="육각 히트맵 보기", command=self.open_hex_spiral_heatmap)
         win_menu.add_separator()
-        win_menu.add_command(label="GPU 3D 조합 큐브 보기", command=self.open_3d_cube_pg_window)
+        win_menu.add_command(label="원형 히트맵 보기", command=self.open_circle_heatmap)
+        # win_menu.add_separator()
+        # win_menu.add_command(label="3D 조합 큐브 보기", command=self.open_3d_cube_window)
+        win_menu.add_separator()
+        win_menu.add_command(label="GPU 3D 큐브 보기", command=self.open_3d_cube_pg_window)
+        win_menu.add_separator()
+        win_menu.add_command(label="GPU 3D 스피어 보기", command=self.open_3d_sphere_pg_window)
         menubar.add_cascade(label="당첨번호", menu=win_menu)
         
 
@@ -65,6 +87,7 @@ class LottoApp(tk.Tk):
 
     def create_main_ui(self):
         outer = ttk.Frame(self, padding=20)
+
         outer.pack(fill="both", expand=True)
 
         title = ttk.Label(
@@ -315,6 +338,19 @@ class LottoApp(tk.Tk):
             subprocess.Popen([sys.executable, script_path])
         except Exception as e:
             messagebox.showerror("오류", f"GPU 3D 큐브 창을 여는 중 오류가 발생했습니다.\n{e}")
+
+    def open_3d_sphere_pg_window(self):
+        try:
+            script_path = os.path.join(os.path.dirname(__file__), "sphere_lotto_opengl.py")
+            subprocess.Popen([sys.executable, script_path])
+        except Exception as e:
+            messagebox.showerror("오류", f"GPU 3D 스피어 창을 여는 중 오류가 발생했습니다.\n{e}")
+    
+    def open_hex_spiral_heatmap(master):
+        HexSpiralHeatmapWindow(master)
+    
+    def open_circle_heatmap(master):
+        CircularRingHeatmapWindow(master)
 
     def show_winning_numbers_window(self):
         try:
