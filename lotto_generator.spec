@@ -6,11 +6,11 @@ a = Analysis(
     pathex=['.'],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['OpenGL', 'OpenGL.GL', 'OpenGL.GLU'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['PySide6.QtWebEngine', 'PySide6.QtQml', 'PySide6.QtQuick'],
     noarchive=False,
     optimize=0,
 )

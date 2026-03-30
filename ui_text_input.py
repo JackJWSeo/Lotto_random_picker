@@ -20,9 +20,9 @@ class WinningTextInputWindow(tk.Toplevel):
         self.text.pack(fill="both", expand=True, padx=10, pady=10)
 
         sample = (
-            "회차\t당첨번호\t\t\t\t\t\t보너스\t당첨게임수\t1게임당 당첨금액\n"
-            "1,214\t10\t15\t19\t27\t30\t33\t14\t12 명\t2,431,577,188 원\n"
-            "1,213\t5\t11\t25\t27\t36\t38\t2\t18 명\t1,740,011,646 원\n"
+            "회차\t날짜\t당첨번호\t\t\t\t\t\t보너스\t순위\t당첨게임수\t1게임당 당첨금액\n"
+            "1,216\t2026-03-21\t3\t10\t14\t15\t23\t24\t25\t1등\t14 명\t2,100,000,000 원\n"
+            "1,215\t2026-03-14\t13\t15\t19\t21\t44\t45\t39\t1등\t16 명\t1,998,542,133 원\n"
         )
         self.text.insert("1.0", sample)
 

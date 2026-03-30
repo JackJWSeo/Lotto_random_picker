@@ -1,5 +1,6 @@
 import math
 import tkinter as tk
+import pyperclip
 from tkinter import ttk, messagebox
 
 import matplotlib
@@ -718,6 +719,7 @@ class CombinationHeatmapWindow(tk.Toplevel):
             pred_numbers = self.current_prediction["predicted_numbers"]
 
             num_text = ", ".join(str(n) for n in pred_numbers)
+            pyperclip.copy(num_text)
 
             self.predict_label.config(
                 text=(

@@ -2,10 +2,10 @@ import os
 import queue
 import threading
 import tkinter as tk
-import subprocess
 import sys
 import base64
-import os
+import subprocess
+import pyperclip
 from Lotto_base64 import Lotto_base64
 from tkinter import ttk, messagebox, filedialog
 from ui_heatmap import CombinationHeatmapWindow
@@ -25,6 +25,7 @@ from ui_3d_cube import Combination3DCubeWindow
 from hex_spiral_heatmap_window import HexSpiralHeatmapWindow
 from circle_packing_heatmap_window import CircularRingHeatmapWindow
 from sphere_lotto_opengl import LottoSphereOpenGLWindow
+from ui_3d_cube_pg import Combination3DCubePGWindow
 
 # ------------------------------------------------------------
 # 아이콘 로드
@@ -39,6 +40,9 @@ class LottoApp(tk.Tk):
         self.title(APP_TITLE)
         self.geometry(APP_GEOMETRY)
         self.resizable(False, False)
+
+        self.sphere_window = None
+        self.cube_pg_window = None
 
         try:
             self.iconphoto(True, load_embedded_icon())
@@ -235,13 +239,16 @@ class LottoApp(tk.Tk):
     def generate_numbers(self):
         try:
             number_sets = get_random_lotto_number_sets(5)
+            clip = ""
+            clip_total = ""
 
             for i, nums in enumerate(number_sets, start=1):
-                self.result_vars[i - 1].set(
-                    f"{i}세트  :  " + "   ".join(f"{n:02d}" for n in nums)
-                )
+                clip = ", ".join(str(n) for n in nums)
+                self.result_vars[i - 1].set(clip)
+                clip_total += clip if len(clip_total) == 0 else f"\n{clip}"
 
             self.status_var.set("상태: 번호 5세트 생성 완료")
+            pyperclip.copy(clip_total)
 
         except Exception as e:
             messagebox.showerror("오류", f"번호 생성 중 오류가 발생했습니다.\n{e}")
@@ -255,12 +262,16 @@ class LottoApp(tk.Tk):
                 candidate_pool_size=2000,
             )
 
+            clip = ""
+            clip_total = ""
+
             for i, nums in enumerate(number_sets, start=1):
-                self.result_vars[i - 1].set(
-                    f"{i}세트  :  " + "   ".join(f"{n:02d}" for n in nums)
-                )
+                clip = ", ".join(str(n) for n in nums)
+                self.result_vars[i - 1].set(clip)
+                clip_total += clip if len(clip_total) == 0 else f"\n{clip}"
 
             self.status_var.set("상태: 저밀도 우선 번호 5세트 생성 완료")
+            pyperclip.copy(clip_total)
 
         except Exception as e:
             messagebox.showerror("오류", f"저밀도 우선 번호 생성 중 오류가 발생했습니다.\n{e}")
@@ -275,12 +286,16 @@ class LottoApp(tk.Tk):
                 candidate_pool_size=2000,
             )
 
+            clip = ""
+            clip_total = ""
+
             for i, nums in enumerate(number_sets, start=1):
-                self.result_vars[i - 1].set(
-                    f"{i}세트  :  " + "   ".join(f"{n:02d}" for n in nums)
-                )
+                clip = ", ".join(str(n) for n in nums)
+                self.result_vars[i - 1].set(clip)
+                clip_total += clip if len(clip_total) == 0 else f"\n{clip}"
 
             self.status_var.set("상태: 고밀도 우선 번호 5세트 생성 완료")
+            pyperclip.copy(clip_total)
 
         except Exception as e:
             messagebox.showerror("오류", f"고밀도 우선 번호 생성 중 오류가 발생했습니다.\n{e}")
@@ -334,23 +349,29 @@ class LottoApp(tk.Tk):
 
     def open_3d_cube_pg_window(self):
         try:
-            script_path = os.path.join(os.path.dirname(__file__), "ui_3d_cube_pg.py")
-            subprocess.Popen([sys.executable, script_path])
+            if getattr(sys, "frozen", False):
+                subprocess.Popen([sys.executable, "--cube"])
+            else:
+                main_script = os.path.join(os.path.dirname(__file__), "main.py")
+                subprocess.Popen([sys.executable, main_script, "--cube"])
         except Exception as e:
             messagebox.showerror("오류", f"GPU 3D 큐브 창을 여는 중 오류가 발생했습니다.\n{e}")
 
     def open_3d_sphere_pg_window(self):
         try:
-            script_path = os.path.join(os.path.dirname(__file__), "sphere_lotto_opengl.py")
-            subprocess.Popen([sys.executable, script_path])
+            if getattr(sys, "frozen", False):
+                subprocess.Popen([sys.executable, "--sphere"])
+            else:
+                main_script = os.path.join(os.path.dirname(__file__), "main.py")
+                subprocess.Popen([sys.executable, main_script, "--sphere"])
         except Exception as e:
             messagebox.showerror("오류", f"GPU 3D 스피어 창을 여는 중 오류가 발생했습니다.\n{e}")
     
-    def open_hex_spiral_heatmap(master):
-        HexSpiralHeatmapWindow(master)
+    def open_hex_spiral_heatmap(self):
+        HexSpiralHeatmapWindow(self)
     
-    def open_circle_heatmap(master):
-        CircularRingHeatmapWindow(master)
+    def open_circle_heatmap(self):
+        CircularRingHeatmapWindow(self)
 
     def show_winning_numbers_window(self):
         try:

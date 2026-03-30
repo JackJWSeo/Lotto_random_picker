@@ -1,0 +1,1 @@
+pyinstaller --clean --onefile --noconsole --paths=. --icon=icon.ico --name=lotto_generator --hidden-import=OpenGL --hidden-import=OpenGL.GL --hidden-import=OpenGL.GLU --exclude-module PySide6.QtWebEngine --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick main.py

@@ -2,8 +2,9 @@ import math
 import os
 import sqlite3
 import sys
+import pyperclip
 
-os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
+os.environ.setdefault("PYQTGRAPH_QT_LIB", "PySide6")
 
 import numpy as np
 import pyqtgraph as pg
@@ -903,6 +904,7 @@ class Combination3DCubePGWindow(QtWidgets.QWidget):
             pred_numbers = self.current_prediction["predicted_numbers"]
 
             num_text = ", ".join(str(n) for n in pred_numbers)
+            pyperclip.copy(num_text)
 
             self.predict_label.setText(
                 f"다음 위치 예측: idx {pred_idx:,} / 번호 [{num_text}] / 기준 회차 {base_draw}"
