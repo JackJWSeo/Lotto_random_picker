@@ -405,10 +405,10 @@ class LottoSphereOpenGLWindow(QtWidgets.QWidget):
 
         control_row.addSpacing(16)
 
-        self.show_background_checkbox = QtWidgets.QCheckBox("전체 배경 인덱스 표시")
-        self.show_background_checkbox.setChecked(True)
-        self.show_background_checkbox.stateChanged.connect(self.redraw)
-        control_row.addWidget(self.show_background_checkbox)
+        self.show_all_point_checkbox = QtWidgets.QCheckBox("전체 점 표시")
+        self.show_all_point_checkbox.setChecked(True)
+        self.show_all_point_checkbox.stateChanged.connect(self.redraw)
+        control_row.addWidget(self.show_all_point_checkbox)
 
         control_row.addWidget(QtWidgets.QLabel("배경 간격"))
         self.background_step_spin = QtWidgets.QSpinBox()
@@ -543,7 +543,7 @@ class LottoSphereOpenGLWindow(QtWidgets.QWidget):
 
     def _reset_ui_to_defaults(self):
         self.radius_spin.setValue(self.default_radius)
-        self.show_background_checkbox.setChecked(True)
+        self.show_all_point_checkbox.setChecked(True)
         self.background_step_spin.setValue(self.default_background_step)
         self.background_size_spin.setValue(self.default_background_size)
         self.highlight_size_spin.setValue(self.default_highlight_size)
@@ -648,7 +648,7 @@ class LottoSphereOpenGLWindow(QtWidgets.QWidget):
             bonus_count = len(self.excluded_rows) - main_count
             unique_excluded = len({idx for _, idx, _ in self.excluded_rows})
 
-            bg_count = len(self.background_points) if self.show_background_checkbox.isChecked() else 0
+            bg_count = len(self.background_points) if self.show_all_point_checkbox.isChecked() else 0
 
             self.summary_label.setText(
                 f"전체 조합: {TOTAL_COMBINATIONS:,}개    "
@@ -683,13 +683,14 @@ class LottoSphereOpenGLWindow(QtWidgets.QWidget):
 
             self._draw_sphere_outline()
 
-            if self.show_background_checkbox.isChecked() and len(self.background_points) > 0:
-                self._draw_background_points()
+            if self.show_all_point_checkbox.isChecked():
+                if len(self.background_points) > 0:
+                    self._draw_background_points()
 
-            if self.show_bonus_checkbox.isChecked():
-                self._draw_bonus_points()
+                if self.show_bonus_checkbox.isChecked():
+                    self._draw_bonus_points()
 
-            self._draw_main_points()
+                self._draw_main_points()
 
             if self.link_checkbox.isChecked():
                 self._draw_neighbor_links()

@@ -13,7 +13,6 @@ from ui_heatmap import CombinationHeatmapWindow
 from config import APP_TITLE, APP_GEOMETRY, DB_PATH
 from database import create_tables, get_all_winning_rows
 from lotto_generator import (
-    build_all_combinations,
     get_random_lotto_number_sets,
     get_density_weighted_random_lotto_number_sets,
     index_to_combination,
@@ -62,8 +61,6 @@ class LottoApp(tk.Tk):
         menubar = tk.Menu(self)
 
         file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="조합 DB 생성", command=self.ask_create_db)
-        file_menu.add_separator()
         file_menu.add_command(label="종료", command=self.destroy)
         menubar.add_cascade(label="파일", menu=file_menu)
 
@@ -202,39 +199,6 @@ class LottoApp(tk.Tk):
             self.generate_low_density_btn.config(state="disabled")
             self.generate_high_density_btn.config(state="disabled")
             messagebox.showerror("오류", f"초기화 중 오류가 발생했습니다.\n{e}")
-
-    def ask_create_db(self):
-        popup = ProgressPopup(self, "조합 DB 생성")
-        self.generate_btn.config(state="disabled")
-        self.generate_low_density_btn.config(state="disabled")
-        self.generate_high_density_btn.config(state="disabled")
-
-        def worker():
-            try:
-                build_all_combinations(
-                    progress_callback=lambda text: self.msg_queue.put(("progress", (popup, text)))
-                )
-                self.msg_queue.put(("done", (popup, "조합 DB 생성 완료", self.on_db_created)))
-            except Exception as e:
-                self.msg_queue.put(("done", (popup, f"조합 DB 생성 실패: {e}", self.on_db_create_failed)))
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    def on_db_created(self, text):
-        self.generate_btn.config(state="normal")
-        self.generate_low_density_btn.config(state="normal")
-        self.generate_high_density_btn.config(state="normal")
-        
-        self.status_var.set("상태: 조합 DB 생성 완료")
-        messagebox.showinfo("완료", text)
-
-    def on_db_create_failed(self, text):
-        self.generate_btn.config(state="normal")
-        self.generate_low_density_btn.config(state="normal")
-        self.generate_high_density_btn.config(state="normal")
-
-        self.status_var.set("상태: 조합 DB 생성 실패")
-        messagebox.showerror("실패", text)
 
     def generate_numbers(self):
         try:
@@ -414,7 +378,7 @@ class LottoApp(tk.Tk):
             yscroll.pack(side="right", fill="y")
 
             for row in rows:
-                draw_no, draw_date, comb_idx, _lotto_value, bonus, winner_count, prize_amount = row
+                draw_no, draw_date, comb_idx, bonus, winner_count, prize_amount = row
                 nums = index_to_combination(comb_idx)
                 num_text = "  ".join(f"{n:02d}" for n in nums)
 

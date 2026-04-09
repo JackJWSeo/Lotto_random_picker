@@ -65,7 +65,7 @@ def index_to_numbers(index_value: int) -> List[int]:
         nums = project_index_to_combination(index_value)
         return sorted(int(x) for x in nums)
 
-    return index_to_combination_lexicographic(index_value, 45, 6)
+    return index_to_combination_lexicographic(index_value - 1, 45, 6)
 
 
 # =========================================================

@@ -1,24 +1,11 @@
 import math
 import random
-from itertools import combinations
 from math import comb
 
 from config import TOTAL_COMBINATIONS
 from database import (
-    create_tables,
-    get_combination_count,
-    insert_combination_batch,
     get_all_excluded_combination_indices,
 )
-
-
-def combination_to_long(nums):
-    return int("".join(f"{n:02d}" for n in nums))
-
-
-def long_to_combination(value):
-    s = str(value).zfill(12)
-    return [int(s[i:i + 2]) for i in range(0, 12, 2)]
 
 
 def combination_to_index(nums):
@@ -74,39 +61,6 @@ def index_to_combination(idx):
     return result
 
 
-def build_all_combinations(progress_callback=None):
-    create_tables()
-
-    exists_count = get_combination_count()
-    if exists_count > 0:
-        if progress_callback:
-            progress_callback(f"조합 DB가 이미 존재합니다. ({exists_count:,}개)")
-        return
-
-    batch_size = 10000
-    buffer = []
-    idx = 1
-
-    for comb_nums in combinations(range(1, 46), 6):
-        lotto_value = combination_to_long(comb_nums)
-        buffer.append((idx, lotto_value))
-        idx += 1
-
-        if len(buffer) >= batch_size:
-            insert_combination_batch(buffer)
-            buffer.clear()
-
-            if progress_callback:
-                current = idx - 1
-                progress_callback(f"조합 DB 생성 중... {current:,} / {TOTAL_COMBINATIONS:,}")
-
-    if buffer:
-        insert_combination_batch(buffer)
-
-    if progress_callback:
-        progress_callback("조합 DB 생성 완료")
-
-
 def get_random_lotto_numbers():
     excluded_indices = get_all_excluded_combination_indices()
 
@@ -123,9 +77,14 @@ def get_random_lotto_numbers():
 
 def get_random_lotto_number_sets(set_count=5):
     excluded_indices = get_all_excluded_combination_indices()
+    available_count = TOTAL_COMBINATIONS - len(excluded_indices)
 
-    if len(excluded_indices) >= TOTAL_COMBINATIONS:
+    if available_count <= 0:
         raise ValueError("생성 가능한 조합이 없습니다. 제외 인덱스가 전체 조합 수 이상입니다.")
+    if set_count > available_count:
+        raise ValueError(
+            f"요청한 세트 수({set_count})가 생성 가능한 조합 수({available_count})보다 많습니다."
+        )
 
     selected_indices = set()
     result_sets = []
@@ -235,9 +194,14 @@ def get_density_weighted_random_lotto_number_sets(
     - high : 고밀도 우선
     """
     excluded_indices = get_all_excluded_combination_indices()
+    available_count = TOTAL_COMBINATIONS - len(excluded_indices)
 
-    if len(excluded_indices) >= TOTAL_COMBINATIONS:
+    if available_count <= 0:
         raise ValueError("생성 가능한 조합이 없습니다. 제외 인덱스가 전체 조합 수 이상입니다.")
+    if set_count > available_count:
+        raise ValueError(
+            f"요청한 세트 수({set_count})가 생성 가능한 조합 수({available_count})보다 많습니다."
+        )
 
     density_info = build_2d_density_blocks(excluded_indices, block_size=block_size)
 
@@ -245,9 +209,15 @@ def get_density_weighted_random_lotto_number_sets(
     result_sets = []
 
     while len(result_sets) < set_count:
+        remaining_count = available_count - len(selected_indices)
+        pool_target = min(candidate_pool_size, remaining_count)
+
+        if pool_target <= 0:
+            raise ValueError("더 이상 선택 가능한 조합이 없습니다.")
+
         candidates = set()
 
-        while len(candidates) < candidate_pool_size:
+        while len(candidates) < pool_target:
             rand_idx = random.randint(1, TOTAL_COMBINATIONS)
 
             if rand_idx in excluded_indices:

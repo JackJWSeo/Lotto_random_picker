@@ -1,22 +1,32 @@
 import sqlite3
-from config import DB_PATH, COMB_TABLE, WIN_TABLE, WIN_EXCLUDED_TABLE
+from config import DB_PATH, WIN_TABLE, WIN_EXCLUDED_TABLE
+
+
+LEGACY_COMB_TABLE = "lotto_combinations"
 
 
 def get_connection():
     return sqlite3.connect(DB_PATH)
 
 
-def create_tables():
-    conn = get_connection()
-    cursor = conn.cursor()
+def _table_exists(cursor, table_name):
+    cursor.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table_name,)
+    )
+    return cursor.fetchone() is not None
 
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {COMB_TABLE} (
-            idx INTEGER PRIMARY KEY,
-            lotto_value INTEGER NOT NULL UNIQUE
-        )
-    """)
 
+def _table_sql_contains(cursor, table_name, text):
+    cursor.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table_name,)
+    )
+    row = cursor.fetchone()
+    return bool(row and row[0] and text.lower() in row[0].lower())
+
+
+def _create_winning_table(cursor):
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {WIN_TABLE} (
             draw_no INTEGER PRIMARY KEY,
@@ -25,76 +35,98 @@ def create_tables():
             bonus INTEGER NOT NULL,
             winner_count INTEGER,
             prize_amount INTEGER,
-            inserted_at TEXT,
-            FOREIGN KEY (comb_idx) REFERENCES {COMB_TABLE}(idx)
+            inserted_at TEXT
         )
     """)
 
+
+def _create_excluded_table(cursor):
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {WIN_EXCLUDED_TABLE} (
             draw_no INTEGER NOT NULL,
             comb_idx INTEGER NOT NULL,
             comb_type TEXT NOT NULL,
-            PRIMARY KEY (draw_no, comb_idx),
-            FOREIGN KEY (draw_no) REFERENCES {WIN_TABLE}(draw_no),
-            FOREIGN KEY (comb_idx) REFERENCES {COMB_TABLE}(idx)
+            PRIMARY KEY (draw_no, comb_idx)
         )
     """)
 
+
+def _migrate_legacy_table(cursor, table_name, create_sql, column_names):
+    legacy_name = f"{table_name}__legacy"
+    column_list = ", ".join(column_names)
+
+    cursor.execute(f"ALTER TABLE {table_name} RENAME TO {legacy_name}")
+    cursor.execute(create_sql)
+    cursor.execute(f"""
+        INSERT INTO {table_name} ({column_list})
+        SELECT {column_list}
+        FROM {legacy_name}
+    """)
+    cursor.execute(f"DROP TABLE {legacy_name}")
+
+
+def create_tables():
+    conn = get_connection()
+    cursor = conn.cursor()
+    winning_create_sql = f"""
+        CREATE TABLE {WIN_TABLE} (
+            draw_no INTEGER PRIMARY KEY,
+            draw_date TEXT,
+            comb_idx INTEGER NOT NULL,
+            bonus INTEGER NOT NULL,
+            winner_count INTEGER,
+            prize_amount INTEGER,
+            inserted_at TEXT
+        )
+    """
+    excluded_create_sql = f"""
+        CREATE TABLE {WIN_EXCLUDED_TABLE} (
+            draw_no INTEGER NOT NULL,
+            comb_idx INTEGER NOT NULL,
+            comb_type TEXT NOT NULL,
+            PRIMARY KEY (draw_no, comb_idx)
+        )
+    """
+
+    if _table_exists(cursor, WIN_TABLE):
+        if _table_sql_contains(cursor, WIN_TABLE, LEGACY_COMB_TABLE):
+            _migrate_legacy_table(
+                cursor,
+                WIN_TABLE,
+                winning_create_sql,
+                [
+                    "draw_no",
+                    "draw_date",
+                    "comb_idx",
+                    "bonus",
+                    "winner_count",
+                    "prize_amount",
+                    "inserted_at",
+                ],
+            )
+    else:
+        _create_winning_table(cursor)
+
+    if _table_exists(cursor, WIN_EXCLUDED_TABLE):
+        if _table_sql_contains(cursor, WIN_EXCLUDED_TABLE, LEGACY_COMB_TABLE):
+            _migrate_legacy_table(
+                cursor,
+                WIN_EXCLUDED_TABLE,
+                excluded_create_sql,
+                [
+                    "draw_no",
+                    "comb_idx",
+                    "comb_type",
+                ],
+            )
+    else:
+        _create_excluded_table(cursor)
+
+    if _table_exists(cursor, LEGACY_COMB_TABLE):
+        cursor.execute(f"DROP TABLE {LEGACY_COMB_TABLE}")
+
     conn.commit()
     conn.close()
-
-
-def get_combination_count():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(f"SELECT COUNT(*) FROM {COMB_TABLE}")
-    count = cursor.fetchone()[0]
-
-    conn.close()
-    return count
-
-
-def insert_combination_batch(rows):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.executemany(
-        f"INSERT INTO {COMB_TABLE} (idx, lotto_value) VALUES (?, ?)",
-        rows
-    )
-
-    conn.commit()
-    conn.close()
-
-
-def get_combination_index_by_value(lotto_value):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        f"SELECT idx FROM {COMB_TABLE} WHERE lotto_value = ?",
-        (lotto_value,)
-    )
-    row = cursor.fetchone()
-
-    conn.close()
-    return row[0] if row else None
-
-
-def get_lotto_value_by_index(idx):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        f"SELECT lotto_value FROM {COMB_TABLE} WHERE idx = ?",
-        (idx,)
-    )
-    row = cursor.fetchone()
-
-    conn.close()
-    return row[0] if row else None
 
 
 def insert_or_replace_winning_row(row):
@@ -163,13 +195,10 @@ def get_all_winning_rows():
             w.draw_no,
             w.draw_date,
             w.comb_idx,
-            c.lotto_value,
             w.bonus,
             w.winner_count,
             w.prize_amount
         FROM {WIN_TABLE} w
-        JOIN {COMB_TABLE} c
-            ON w.comb_idx = c.idx
         ORDER BY w.draw_no DESC
     """)
 

@@ -30,12 +30,19 @@ def parse_winning_text(raw_text):
             draw_date = parts[1]
             numbers = [parse_int_from_text(x) for x in parts[2:8]]
             bonus = parse_int_from_text(parts[8])
-            winner_count = parse_int_from_text(parts[10])
-            prize_amount = parse_int_from_text(parts[11])
+            tail_parts = parts[9:]
+
+            if len(tail_parts) < 2:
+                continue
+
+            winner_count = parse_int_from_text(tail_parts[-2])
+            prize_amount = parse_int_from_text(tail_parts[-1])
 
             if draw_no is None or bonus is None:
                 continue
             if any(n is None for n in numbers):
+                continue
+            if winner_count is None or prize_amount is None:
                 continue
 
             parsed_rows.append({

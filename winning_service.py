@@ -2,7 +2,6 @@ from datetime import datetime
 
 from database import (
     create_tables,
-    get_combination_count,
     insert_or_replace_winning_row,
     replace_winning_excluded_rows,
     get_all_winning_rows,
@@ -53,8 +52,6 @@ def convert_number_sets_to_excluded_rows(draw_no, number_sets):
 def import_winning_data_from_text(raw_text, progress_callback=None):
     create_tables()
 
-    # 조합 DB 생성 여부를 여전히 프로그램 정책상 확인하고 싶다면 유지 가능
-    # 다만 idx 계산 자체는 이제 DB 검색을 하지 않음
     parsed_rows = parse_winning_text(raw_text)
     if not parsed_rows:
         raise ValueError("파싱 가능한 당첨번호 데이터가 없습니다.")

@@ -1,6 +1,5 @@
 DB_PATH = "lotto_numbers.db"
 
-COMB_TABLE = "lotto_combinations"
 WIN_TABLE = "winning_numbers"
 WIN_EXCLUDED_TABLE = "winning_excluded_combinations"
 
